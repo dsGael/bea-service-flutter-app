@@ -7,7 +7,7 @@ class ApiClient {
   final TokenStorage _tokenStorage = TokenStorage();
 
   // Ajusta a tu dominio real cuando tengas Nginx+SSL corriendo
-  static const String baseUrl = 'localhost:3000';
+  static const String baseUrl = 'http://192.168.101.135:3000';
 
   ApiClient() {
     dio = Dio(BaseOptions(
@@ -18,7 +18,7 @@ class ApiClient {
 
     dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
-        final token = await _tokenStorage.obtener();
+        final token = await _tokenStorage.obtenerToken();
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
@@ -27,7 +27,7 @@ class ApiClient {
       onError: (error, handler) async {
         // 401 -> el token expiró o es inválido, hay que forzar re-login
         if (error.response?.statusCode == 401) {
-          await _tokenStorage.borrar();
+          await _tokenStorage.borrarTodo();
           // aquí disparas navegación a login — se conecta con el router más adelante
         }
         return handler.next(error);
