@@ -1,0 +1,55 @@
+name: bea_service_app
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Estado — Riverpod es más ligero que Bloc, menos ceremonia para tu caso
+  flutter_riverpod: ^2.5.1
+
+  # HTTP — Dio en vez de http plano, porque necesitas interceptors
+  # para inyectar el JWT automáticamente en cada request
+  dio: ^5.4.3
+
+  # Guardar el JWT de forma segura (no SharedPreferences plano)
+  flutter_secure_storage: ^9.2.2
+
+  # Base local para offline-first — Isar es más rápido que sqflite
+  # en dispositivos de gama baja, y el query builder es más simple
+  isar: ^3.1.0+1
+  isar_flutter_libs: ^3.1.0+1
+
+  # Formularios con validación declarativa
+  reactive_forms: ^17.0.0
+
+  # GPS para checador y geocercas
+  geolocator: ^13.0.1
+
+  # Cámara/galería para evidencia de reparaciones
+  image_picker: ^1.1.2
+
+  # Detectar conectividad — clave para tu flujo offline
+  connectivity_plus: ^6.0.5
+
+  # Notificaciones push (asignación de tickets)
+  firebase_messaging: ^15.1.3
+  firebase_core: ^3.6.0
+
+  # Compresión de imágenes antes de subir (celulares de gama baja + datos limitados)
+  flutter_image_compress: ^2.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  isar_generator: ^3.1.0+1
+  build_runner: ^2.4.13
+
+
+flutter:
+  uses-material-design: true
