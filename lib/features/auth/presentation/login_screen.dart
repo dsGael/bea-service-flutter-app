@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'providers/auth_provider.dart';
+import 'package:go_router/go_router.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -21,9 +22,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ref.listen(authStateProvider, (previous, next) {
       next.whenOrNull(
         data: (usuario) {
-          if (usuario != null) {
-            Navigator.pushReplacementNamed(context, '/tickets');
-          }
+          if (usuario != null) context.go('/tickets');
         },
         error: (err, st) {
           ScaffoldMessenger.of(context).showSnackBar(

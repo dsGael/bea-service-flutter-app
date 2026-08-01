@@ -21,7 +21,8 @@ class AuthNotifier extends StateNotifier<AsyncValue<Map<String, dynamic>?>> {
   Future<void> login(String identificador, String password) async {
     state = const AsyncValue.loading();
     try {
-      final usuario = await _repository.login(identificador, password);
+
+      final usuario = await _repository.login(identificador.trim(), password);
       state = AsyncValue.data(usuario);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
