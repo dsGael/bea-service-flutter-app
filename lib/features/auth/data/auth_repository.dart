@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+
 import '../../../core/api/api_client.dart';
 import '../../../core/storage/token_storage.dart';
 
@@ -22,4 +24,21 @@ class AuthRepository {
   }
 
   Future<void> logout() => _tokenStorage.borrarTodo();
+
+  Future<Map<String, dynamic>?> restaurarSesion() async {
+  final token = await _tokenStorage.obtenerToken();
+  if (token == null) return null;
+
+    try {
+      final response = await _apiClient.dio.get('/auth/me');
+      return _apiClient.unwrap(response) as Map<String, dynamic>;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        await _tokenStorage.borrarTodo(); // token inválido/expirado — limpia y manda a login
+        return null;
+      }
+      rethrow; // otros errores (sin conexión, etc.) sí los quieres saber, no los escondas
+    }
+  }
+
 }

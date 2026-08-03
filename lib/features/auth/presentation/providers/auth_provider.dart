@@ -16,7 +16,19 @@ final authStateProvider = StateNotifierProvider<AuthNotifier, AsyncValue<Map<Str
 class AuthNotifier extends StateNotifier<AsyncValue<Map<String, dynamic>?>> {
   final AuthRepository _repository;
 
-  AuthNotifier(this._repository) : super(const AsyncValue.data(null));
+  AuthNotifier(this._repository) : super(const AsyncValue.loading()) {
+    _restaurarSesion();
+  }
+
+   Future<void> _restaurarSesion() async {
+    try {
+      final usuario = await _repository.restaurarSesion();
+      state = AsyncValue.data(usuario);
+    } catch (e ) {
+      state = AsyncValue.data(null); // si falla por conexión, lo mandamos a login, no a un error permanente
+      
+    }
+  }
 
   Future<void> login(String identificador, String password) async {
     state = const AsyncValue.loading();

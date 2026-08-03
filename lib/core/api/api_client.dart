@@ -7,7 +7,7 @@ class ApiClient {
   final TokenStorage _tokenStorage = TokenStorage();
 
   // Ajusta a tu dominio real cuando tengas Nginx+SSL corriendo
-  static const String baseUrl = 'http://192.168.101.133:3000';
+  static const String baseUrl = 'http://192.168.100.24:3000';
 
   ApiClient() {
     dio = Dio(BaseOptions(
