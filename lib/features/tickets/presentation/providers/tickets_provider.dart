@@ -54,6 +54,10 @@ final ticketDetailProvider = FutureProvider.autoDispose.family<TicketModel, Stri
   return ref.watch(ticketsRepositoryProvider).obtenerPorId(idticket);
 });
 
+final ticketListCorrectivoProvider = FutureProvider.autoDispose<List<TicketModel>>((ref) async {
+  return ref.watch(ticketsRepositoryProvider).listarCorrectivosAbiertos();
+});
+
 
 // ===========================================================================
 // ── 3. CONTROLADOR DE ACCIONES (POST, PATCH) ──

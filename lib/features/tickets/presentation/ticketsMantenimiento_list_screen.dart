@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'providers/tickets_provider.dart';
 
-class TicketsListScreen extends ConsumerWidget {
-  const TicketsListScreen({super.key});
+class TicketsMantenimientoListScreen extends ConsumerWidget {
+  const TicketsMantenimientoListScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

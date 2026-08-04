@@ -1,8 +1,9 @@
+import 'package:bea_service_app/features/tickets/presentation/ticketsCorrectivos_list_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
-import '../../features/tickets/presentation/tickets_list_screen.dart';
+import '../../features/tickets/presentation/ticketsMantenimiento_list_screen.dart';
 import '../../features/checador/presentation/checador_screen.dart';
 import '../../features/refacciones/presentation/refacciones_screen.dart';
 import 'main_shell.dart';
@@ -17,7 +18,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final vaALogin = state.matchedLocation == '/login';
 
       if (!estaLogueado && !vaALogin) return '/login';
-      if (estaLogueado && vaALogin) return '/tickets';
+      if (estaLogueado && vaALogin) return '/ticketsMantenimiento';
       return null;
     },
     routes: [
@@ -30,12 +31,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         branches: [
           StatefulShellBranch(
             routes: [
-              GoRoute(path: '/tickets', builder: (context, state) => const TicketsListScreen()),
+              GoRoute(path: '/ticketsMantenimiento', builder: (context, state) => const TicketsMantenimientoListScreen()),
             ],
           ),
           StatefulShellBranch(
             routes: [
-              GoRoute(path: '/refacciones', builder: (context, state) => const RefaccionesScreen()),
+              GoRoute(path: '/ticketsCorrectivos', builder: (context, state) => const TicketsCorrectivosListScreen()),
             ],
           ),
           StatefulShellBranch(

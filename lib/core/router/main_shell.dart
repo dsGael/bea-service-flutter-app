@@ -24,16 +24,16 @@ class MainShell extends StatelessWidget {
           NavigationDestination(
             icon: Icon(Icons.assignment_outlined),
             selectedIcon: Icon(Icons.assignment),
-            label: 'Folios',
+            label: 'Mantenimientos',
           ),
           NavigationDestination(
             icon: Icon(Icons.build_outlined),
             selectedIcon: Icon(Icons.build),
-            label: 'Refacciones',
+            label: 'Folios',
           ),
            NavigationDestination(
-            icon: Icon(Icons.fingerprint_outlined),
-            selectedIcon: Icon(Icons.fingerprint),
+            icon: Icon(Icons.access_alarms_outlined),
+            selectedIcon: Icon(Icons.access_alarms),
             label: 'Checador',
           ),
         ],

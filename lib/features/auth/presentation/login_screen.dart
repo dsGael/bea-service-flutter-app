@@ -22,7 +22,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ref.listen(authStateProvider, (previous, next) {
       next.whenOrNull(
         data: (usuario) {
-          if (usuario != null) context.go('/tickets');
+          if (usuario != null) context.go('/ticketsMantenimiento');
         },
         error: (err, st) {
           ScaffoldMessenger.of(context).showSnackBar(

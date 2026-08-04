@@ -35,8 +35,12 @@ class TicketsRepository {
   }
 
   Future<List<TicketModel>> listarMantenimientoAbiertosPorTecnico(String idtecnico) async {
-    // Asegúrate de corregir el typo "abiberto" en tu controlador de NestJS
     final response = await _apiClient.dio.get('/tickets/mantenimiento/abierto/tecnico/$idtecnico');
+    return _parseList(response);
+  }
+
+  Future<List<TicketModel>> listarCorrectivosAbiertos({Map<String, dynamic>? query}) async {
+    final response = await _apiClient.dio.get('/tickets/correctivos/abierto', queryParameters: query);
     return _parseList(response);
   }
 
