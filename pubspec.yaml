@@ -32,7 +32,7 @@ dependencies:
   reactive_forms: ^17.0.0
 
   # GPS para checador y geocercas
-  geolocator: ^13.0.1
+  geolocator: ^14.0.2
 
   # Cámara/galería para evidencia de reparaciones
   image_picker: ^1.1.2
@@ -48,7 +48,8 @@ dependencies:
 
   # Compresión de imágenes antes de subir (celulares de gama baja + datos limitados)
   flutter_image_compress: ^2.3.0
-
+  google_maps_flutter: ^2.18.0
+  uuid: ^4.6.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

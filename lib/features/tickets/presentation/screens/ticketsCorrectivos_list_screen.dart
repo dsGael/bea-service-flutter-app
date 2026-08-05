@@ -1,7 +1,7 @@
 import 'package:bea_service_app/core/widgets/app_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'providers/tickets_provider.dart';
+import '../providers/tickets_provider.dart';
 
 class TicketsCorrectivosListScreen extends ConsumerWidget {
   const TicketsCorrectivosListScreen({super.key});
@@ -11,7 +11,7 @@ class TicketsCorrectivosListScreen extends ConsumerWidget {
     final ticketsAsync = ref.watch(ticketListCorrectivoProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Correctivoss Pendientes')),
+      appBar: AppBar(title: const Text('Correctivos Pendientes')),
       drawer: const AppDrawer(), 
       body: RefreshIndicator(
         onRefresh: () => ref.refresh(ticketListCorrectivoProvider.future),

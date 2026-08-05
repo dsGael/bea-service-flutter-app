@@ -1,9 +1,11 @@
+import 'package:bea_service_app/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'core/router/app_router.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized(); 
+  
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -16,7 +18,9 @@ class MyApp extends ConsumerWidget {
 
     return MaterialApp.router(
       title: 'BEA Sonora — Técnicos',
-      theme: ThemeData(colorSchemeSeed: Colors.deepOrange, useMaterial3: true),
+      //theme: AppTheme.darkTheme, // Usa el tema oscuro definido en AppTheme
+      theme: AppTheme.lightTheme, // Usa el tema claro definido en AppTheme
+      //theme: ThemeData(colorSchemeSeed: Colors.deepOrange, useMaterial3: true),
       routerConfig: router,
       debugShowCheckedModeBanner: false,
     );

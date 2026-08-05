@@ -1,4 +1,5 @@
 // lib/features/auth/presentation/login_screen.dart
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'providers/auth_provider.dart';
@@ -24,9 +25,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         data: (usuario) {
           if (usuario != null) context.go('/ticketsMantenimiento');
         },
-        error: (err, st) {
+       error: (err, st) {
+          String mensajeError = 'Error desconocido al iniciar sesión';
+
+          // Si usas Dio, puedes leer exactamente lo que mandó NestJS
+          if (err is DioException && err.response != null) {
+             // Extrae el "Contraseña incorrecta" del JSON de NestJS
+             final data = err.response!.data;
+             mensajeError = data['message'] ?? mensajeError;
+          } else {
+             // Fallback genérico
+             mensajeError = err.toString().replaceAll('Exception: ', '');
+          }
+
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Credenciales inválidas')),
+            SnackBar(
+              content: Text(mensajeError),
+              backgroundColor: const Color.fromARGB(255, 250, 81, 69),
+            ),
           );
         },
       );

@@ -1,7 +1,8 @@
 import 'package:bea_service_app/core/widgets/app_drawer.dart';
+import 'package:bea_service_app/features/tickets/presentation/screens/crear_ticket_form_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'providers/tickets_provider.dart';
+import '../providers/tickets_provider.dart';
 
 class TicketsMantenimientoListScreen extends ConsumerWidget {
   const TicketsMantenimientoListScreen({super.key});
@@ -13,6 +14,22 @@ class TicketsMantenimientoListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Mantenimientos Pendientes')),
       drawer: const AppDrawer(), 
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          // Esto empuja la nueva pantalla de formulario sobre la actual
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CrearTicketFormScreen(),
+            ),
+          );
+        },
+        backgroundColor: const Color(0xFF2396B9), 
+        shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(16), ),
+        elevation: 4,
+        
+        child: const Icon(Icons.more_vert, color: Colors.white, size: 28),
+      ),
       body: RefreshIndicator(
         onRefresh: () => ref.refresh(ticketsListMantenimientoAbiertosProvider.future),
         child: ticketsAsync.when(

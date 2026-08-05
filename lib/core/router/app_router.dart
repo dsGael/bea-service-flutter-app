@@ -1,9 +1,9 @@
-import 'package:bea_service_app/features/tickets/presentation/ticketsCorrectivos_list_screen.dart';
+import 'package:bea_service_app/features/tickets/presentation/screens/ticketsCorrectivos_list_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
-import '../../features/tickets/presentation/ticketsMantenimiento_list_screen.dart';
+import '../../features/tickets/presentation/screens/ticketsMantenimiento_list_screen.dart';
 import '../../features/checador/presentation/checador_screen.dart';
 import '../../features/refacciones/presentation/refacciones_screen.dart';
 import 'main_shell.dart';
