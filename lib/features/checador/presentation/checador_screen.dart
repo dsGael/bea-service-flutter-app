@@ -23,7 +23,7 @@ class _ChecadorScreenState extends ConsumerState<ChecadorScreen> {
   Timer? _timer;
 
   // --- VARIABLES DE COOLDOWN ---
-  static const _duracionCooldown = Duration(minutes: 10); // ajusta el tiempo aquí
+  static const _duracionCooldown = Duration(hours: 1); // ajusta el tiempo aquí
   static const _keyBloqueadoHasta = 'checador_bloqueado_hasta';
 
   DateTime? _bloqueadoHasta;
