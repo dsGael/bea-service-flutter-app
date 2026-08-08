@@ -36,10 +36,10 @@ class AppDrawer extends ConsumerWidget {
             ),
             ListTile(
               leading: const Icon(Icons.history),
-              title: const Text('Historial de folios'),
+              title: const Text('Historial de folios de mantenimiento'),
               onTap: () {
                 Navigator.pop(context);
-                context.push('/tickets/historial');
+                context.push('/tickets/historial/mantenimientos');
               },
             ),
 

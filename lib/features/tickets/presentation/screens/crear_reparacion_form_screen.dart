@@ -1,17 +1,16 @@
-import 'dart:math';
-
+import 'dart:convert';
+import 'dart:io';
 import 'package:bea_service_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:bea_service_app/features/tickets/data/models/diagnostico_model.dart';
+import 'package:bea_service_app/features/tickets/data/models/ticket_model.dart';
+import 'package:bea_service_app/features/tickets/data/uploads_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
-// Importa tu TicketModel y providers
-import 'package:bea_service_app/features/tickets/data/models/ticket_model.dart';
-import 'package:uuid/uuid.dart';
+import 'package:intl/intl.dart';
 
 class ReparacionFormScreen extends ConsumerStatefulWidget {
   final TicketModel ticket;
-
   const ReparacionFormScreen({super.key, required this.ticket});
 
   @override
@@ -20,22 +19,50 @@ class ReparacionFormScreen extends ConsumerStatefulWidget {
 
 class _ReparacionFormScreenState extends ConsumerState<ReparacionFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  
-  // Controladores y variables de estado
+  final _comentariosController = TextEditingController();
+  final _picker = ImagePicker();
+
   DateTime _fechaAtencion = DateTime.now();
+  bool _cargandoCatalogos = false;
+  bool _guardando = false;
+
+  // Catálogo
+  List<DiagnosticoModel> _catalogoDiagnosticos = [];
+  
+  // Diagnósticos únicos
+  List<String> get _diagnosticosUnicos =>
+      _catalogoDiagnosticos.map((d) => d.diagnostico).toSet().toList()..sort();
+      
+  // Reparaciones dinámicas (Lógica de AppSheet replicada)
+  List<String> get _reparacionesDisponibles {
+    if (_diagnosticoSeleccionado == null || _diagnosticoSeleccionado!.isEmpty) {
+      // Si está en blanco, muestra TODAS las reparaciones de ese dispositivo
+      return _catalogoDiagnosticos
+          .where((d) => d.reparacion != null)
+          .map((d) => d.reparacion!)
+          .toSet()
+          .toList()
+        ..sort();
+    }
+    // Si hay un diagnóstico seleccionado, filtra estrictamente
+    return _catalogoDiagnosticos
+        .where((d) => d.diagnostico == _diagnosticoSeleccionado && d.reparacion != null)
+        .map((d) => d.reparacion!)
+        .toSet()
+        .toList()
+      ..sort();
+  }
+
   String? _diagnosticoSeleccionado;
   String? _reparacionSeleccionada;
-  final _comentariosController = TextEditingController();
 
-  // Listas simuladas (Estas se llenarán llamando a tu API de NestJS)
-  List<String> _listaDiagnosticos = [];
-  List<String> _listaReparaciones = [];
-  bool _cargandoCatalogos = false;
+  // Evidencias (Arreglo ilimitado)
+  List<File> _evidencias = [];
 
   @override
   void initState() {
     super.initState();
-    _cargarDiagnosticos();
+    _cargarCatalogos();
   }
 
   @override
@@ -44,91 +71,197 @@ class _ReparacionFormScreenState extends ConsumerState<ReparacionFormScreen> {
     super.dispose();
   }
 
-  // --- LÓGICA DE API (Simulada) ---
-  Future<void> _cargarDiagnosticos() async {
+Future<void> _cargarCatalogos() async {
+    final idFalla = widget.ticket.falla?.idFalla;
+    if (idFalla == null) return;
+
     setState(() => _cargandoCatalogos = true);
-    
-    // Aquí el ID del dispositivo heredado. Si no tiene directo, lo saca de la falla.
-    final idDispositivo = widget.ticket.dispositivo?.idDispositivoT ?? widget.ticket.falla?.idFalla;
 
-    // TODO: Llamar a tu API GET /catalogos/diagnosticos?idDispositivo=$idDispositivo
-    await Future.delayed(const Duration(milliseconds: 500)); // Simulando red
-    
-    setState(() {
-      _listaDiagnosticos = ['Falso Contacto', 'Cortocircuito', 'Daño Físico', 'Desconfiguración'];
-      _cargandoCatalogos = false;
-    });
-  }
+    try {
+      final apiClient = ref.read(apiClientProvider);
+      final response = await apiClient.dio.get(
+        '/catalogos/diagnostico/falla',
+        queryParameters: {'idFalla': idFalla},
+      );
 
-  Future<void> _cargarReparaciones(String diagnostico) async {
-    setState(() {
-      _cargandoCatalogos = true;
-      _reparacionSeleccionada = null; // Limpiar la reparación actual al cambiar diagnóstico
-    });
+      // 1. Tomamos la data sin forzarla a "as List" todavía
+      final rawData = apiClient.unwrap(response); 
 
-    // TODO: Llamar a tu API GET /catalogos/reparaciones?idDispositivo=$idDispositivo&diagnostico=$diagnostico
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    setState(() {
-      // Simulación basada en el diagnóstico
-      if (diagnostico == 'Falso Contacto') {
-        _listaReparaciones = ['Limpieza de pines', 'Ajuste de arnés', 'Reemplazo de cable'];
+      // 👇 2. ESTO TE DIRÁ EXACTAMENTE QUÉ ESTÁ MANDANDO NESTJS 👇
+      print('=== RESPUESTA DEL BACKEND ===');
+      print('TIPO: ${rawData.runtimeType}');
+      print('VALOR: $rawData');
+      print('=============================');
+
+      List<dynamic> listaSegura = [];
+
+      // 3. Lógica a prueba de balas para extraer la lista
+      if (rawData is List) {
+        // Escenario ideal: Llegó como una lista real
+        listaSegura = rawData;
+      } else if (rawData is String) {
+        // Escenario B: Llegó como un texto, intentamos decodificarlo a JSON
+        try {
+          final decoded = jsonDecode(rawData);
+          if (decoded is List) {
+            listaSegura = decoded;
+          } else if (decoded is Map) {
+            // Por si viene envuelto como { "data": [...] }
+            listaSegura = decoded['data'] ?? decoded.values.firstWhere((v) => v is List, orElse: () => []);
+          }
+        } catch (e) {
+          throw Exception('El servidor devolvió un texto plano que no es JSON: $rawData');
+        }
+      } else if (rawData is Map) {
+        // Escenario C: Llegó como un mapa de Dart { "data": [...] }
+        listaSegura = rawData['data'] ?? rawData.values.firstWhere((v) => v is List, orElse: () => []);
       } else {
-        _listaReparaciones = ['Reemplazo de pieza', 'Reinicio de sistema'];
+        throw Exception('Formato de respuesta desconocido.');
       }
-      _cargandoCatalogos = false;
-    });
+
+      // 4. Mapeamos la lista segura a nuestro modelo
+      setState(() {
+        _catalogoDiagnosticos = listaSegura
+            .map((j) => DiagnosticoModel.fromJson(j as Map<String, dynamic>))
+            .toList();
+      });
+
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al cargar catálogos: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _cargandoCatalogos = false);
+    }
   }
 
-  // --- LÓGICA DE UI ---
+  Future<void> _seleccionarEvidencia() async {
+    final opcion = await showModalBottomSheet<String>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Tomar foto'),
+              onTap: () => Navigator.pop(context, 'foto-camara'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Elegir foto de galería'),
+              onTap: () => Navigator.pop(context, 'foto-galeria'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.videocam),
+              title: const Text('Grabar video'),
+              onTap: () => Navigator.pop(context, 'video-camara'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.video_library),
+              title: const Text('Elegir video de galería'),
+              onTap: () => Navigator.pop(context, 'video-galeria'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (opcion == null) return;
+
+    final isVideo = opcion.startsWith('video');
+    final source = opcion.endsWith('camara') ? ImageSource.camera : ImageSource.gallery;
+
+    if (isVideo) {
+      final picked = await _picker.pickVideo(source: source);
+      if (picked != null && mounted) {
+        setState(() {
+          _evidencias.add(File(picked.path));
+        });
+      }
+      return;
+    }
+
+    final picked = await _picker.pickImage(
+      source: source,
+      imageQuality: 70,
+      maxWidth: 1280,
+    );
+
+    if (picked != null && mounted) {
+      setState(() {
+        _evidencias.add(File(picked.path));
+      });
+    }
+  }
+
   Future<void> _seleccionarFecha() async {
-    final DateTime? seleccion = await showDatePicker(
+    final fecha = await showDatePicker(
       context: context,
       initialDate: _fechaAtencion,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
     );
-    if (seleccion != null) {
-      final TimeOfDay? hora = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.fromDateTime(_fechaAtencion),
-      );
-      if (hora != null) {
-        setState(() {
-          _fechaAtencion = DateTime(
-            seleccion.year, seleccion.month, seleccion.day,
-            hora.hour, hora.minute,
-          );
-        });
-      }
-    }
+    if (fecha == null || !mounted) return;
+
+    final hora = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_fechaAtencion),
+    );
+    if (hora == null) return;
+
+    setState(() {
+      _fechaAtencion = DateTime(fecha.year, fecha.month, fecha.day, hora.hour, hora.minute);
+    });
   }
 
   Future<void> _guardarReparacion() async {
-    if (_formKey.currentState!.validate()) {
-      // 1. Obtener el técnico logueado sin preguntarle al usuario en la UI
-      final usuario = ref.read(authStateProvider).valueOrNull;
-      final idTecnico = usuario?['idUsuarioApp'] ?? 'Desconocido';
-      final idGeneradoLocalmente = const Uuid().v4(); // Creas el ID
-      // 2. Armar el payload para NestJS
-      final payload = {
-        'idticket': widget.ticket.idticket,
-        'idDetalleTicket': idGeneradoLocalmente, // Genera un ID único para el detalle de ticket
-        'idtecnico': idTecnico,
-        'fechaAtencion': _fechaAtencion.toIso8601String(),
-        'diagnostico': _diagnosticoSeleccionado,
-        'reparacion': _reparacionSeleccionada,
-        'comentarios': _comentariosController.text,
-        // Aquí irían las URLs de las fotos subidas a S3 o Firebase
-      };
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _guardando = true);
 
-      // TODO: Mandar al backend
-      print("Guardando: $payload");
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reparación guardada exitosamente'), backgroundColor: Colors.green),
+    try {
+      final apiClient = ref.read(apiClientProvider);
+      final uploadsRepo = UploadsRepository(apiClient);
+
+      // Subir TODAS las fotos/videos a MinIO y almacenar sus URLs en un arreglo
+      List<String> urlsSubidas = [];
+      for (var archivo in _evidencias) {
+        final url = await uploadsRepo.subirImagen(archivo);
+        if (url != null) {
+          urlsSubidas.add(url);
+        }
+      }
+
+      // Llama al endpoint mandando el arreglo completo
+      await apiClient.dio.patch(
+        '/tickets/${widget.ticket.idticket}/reparacion',
+        data: {
+          'diagnostico': _diagnosticoSeleccionado,
+          'reparacion': _reparacionSeleccionada,
+          'comentarios': _comentariosController.text.trim(),
+          'evidencias': urlsSubidas, // <-- Se envía como Array al backend
+        },
       );
-      Navigator.pop(context);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Reparación registrada — en espera de validación'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context, true); 
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al guardar: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _guardando = false);
     }
   }
 
@@ -143,9 +276,7 @@ class _ReparacionFormScreenState extends ConsumerState<ReparacionFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // FECHA DE ATENCIÓN
-              const Text('Fecha de Atención *', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
+              _label('Fecha de Atención *'),
               InkWell(
                 onTap: _seleccionarFecha,
                 child: InputDecorator(
@@ -153,14 +284,12 @@ class _ReparacionFormScreenState extends ConsumerState<ReparacionFormScreen> {
                     border: OutlineInputBorder(),
                     suffixIcon: Icon(Icons.calendar_today),
                   ),
-                  child: Text(DateFormat('dd/MM/yyyy hh:mm:ss a').format(_fechaAtencion)),
+                  child: Text(DateFormat('dd/MM/yyyy hh:mm a').format(_fechaAtencion)),
                 ),
               ),
               const SizedBox(height: 20),
 
-              // FALLA REPORTADA (Heredada, solo lectura)
-              const Text('Falla Reportada', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
+              _label('Falla Reportada'),
               TextFormField(
                 initialValue: widget.ticket.falla?.falla ?? widget.ticket.comentarios ?? 'Sin falla registrada',
                 readOnly: true,
@@ -172,46 +301,47 @@ class _ReparacionFormScreenState extends ConsumerState<ReparacionFormScreen> {
               ),
               const SizedBox(height: 20),
 
-              // DIAGNÓSTICO (Cascada Padre)
-              const Text('Diagnóstico *', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
+              _label('Diagnóstico'),
+              _cargandoCatalogos
+                  ? const LinearProgressIndicator()
+                  : DropdownButtonFormField<String>(
+                      value: _diagnosticoSeleccionado,
+                      decoration: const InputDecoration(border: OutlineInputBorder()),
+                      hint: const Text('Seleccione...'),
+                      isExpanded: true,
+                      items: _diagnosticosUnicos
+                          .map((d) => DropdownMenuItem(value: d, child: Text(d)))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _diagnosticoSeleccionado = value;
+                          // Valida que la reparación actual siga existiendo tras el nuevo filtro
+                          if (_reparacionSeleccionada != null && 
+                              !_reparacionesDisponibles.contains(_reparacionSeleccionada)) {
+                            _reparacionSeleccionada = null; 
+                          }
+                        });
+                      },
+                      // Ya no es requerido estricto si quieres emular AppSheet puro, 
+                      // pero puedes dejar el validator si es obligatorio.
+                    ),
+              const SizedBox(height: 20),
+
+              _label('Reparación *'),
               DropdownButtonFormField<String>(
-                value: _diagnosticoSeleccionado,
+                value: _reparacionSeleccionada,
                 decoration: const InputDecoration(border: OutlineInputBorder()),
-                hint: Text(_cargandoCatalogos ? 'Cargando...' : 'Seleccione...'),
-                items: _listaDiagnosticos.map((String diag) {
-                  return DropdownMenuItem(value: diag, child: Text(diag));
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() => _diagnosticoSeleccionado = newValue);
-                  if (newValue != null) _cargarReparaciones(newValue);
-                },
-                validator: (value) => value == null ? 'Requerido' : null,
+                hint: const Text('Seleccione...'),
+                isExpanded: true,
+                items: _reparacionesDisponibles
+                    .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+                    .toList(),
+                onChanged: (value) => setState(() => _reparacionSeleccionada = value),
+                validator: (v) => v == null ? 'Requerido' : null,
               ),
               const SizedBox(height: 20),
 
-              // REPARACIÓN (Cascada Hijo)
-              const Text('Reparación *', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                initialValue: _reparacionSeleccionada,
-                decoration: const InputDecoration(border: OutlineInputBorder()),
-                hint: Text(_diagnosticoSeleccionado == null 
-                  ? 'Seleccione un diagnóstico primero' 
-                  : 'Seleccione...'),
-                items: _listaReparaciones.map((String rep) {
-                  return DropdownMenuItem(value: rep, child: Text(rep));
-                }).toList(),
-                onChanged: _diagnosticoSeleccionado == null ? null : (String? newValue) {
-                  setState(() => _reparacionSeleccionada = newValue);
-                },
-                validator: (value) => value == null ? 'Requerido' : null,
-              ),
-              const SizedBox(height: 20),
-
-              // COMENTARIOS
-              const Text('Comentarios', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
+              _label('Comentarios'),
               TextFormField(
                 controller: _comentariosController,
                 maxLines: 3,
@@ -219,17 +349,60 @@ class _ReparacionFormScreenState extends ConsumerState<ReparacionFormScreen> {
               ),
               const SizedBox(height: 20),
 
-              // SECCIÓN DE EVIDENCIAS (Botones estilo cámara/pdf)
-              const Text('Evidencia 1', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+              // SECCIÓN DE EVIDENCIAS ILIMITADAS
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _label('Evidencias Adjuntas (${_evidencias.length})'),
+                  TextButton.icon(
+                    onPressed: _seleccionarEvidencia,
+                    icon: const Icon(Icons.add_a_photo),
+                    label: const Text('Agregar'),
+                  )
+                ],
+              ),
               const SizedBox(height: 8),
-              _buildBotonEvidencia(Icons.camera_alt, 'Tomar Foto'),
               
-              const SizedBox(height: 20),
-              
-              const Text('Video Evidencia', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              _buildBotonEvidencia(Icons.picture_as_pdf, 'Subir Archivo'),
-              
+              if (_evidencias.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(Icons.photo_library_outlined, size: 40, color: Colors.grey.shade400),
+                      const SizedBox(height: 8),
+                      Text('No hay archivos adjuntos', style: TextStyle(color: Colors.grey.shade500)),
+                    ],
+                  ),
+                )
+              else
+                SizedBox(
+                  height: 140,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _evidencias.length,
+                    itemBuilder: (context, index) {
+                      final archivo = _evidencias[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 12.0),
+                        child: _buildBotonEvidencia(
+                          archivo: archivo,
+                          onEliminar: () {
+                            setState(() {
+                              _evidencias.removeAt(index);
+                            });
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                
               const SizedBox(height: 40),
             ],
           ),
@@ -242,10 +415,9 @@ class _ReparacionFormScreenState extends ConsumerState<ReparacionFormScreen> {
             children: [
               Expanded(
                 child: TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: _guardando ? null : () => Navigator.pop(context),
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    foregroundColor: Colors.black87,
                   ),
                   child: const Text('Cancelar', style: TextStyle(fontSize: 16)),
                 ),
@@ -253,13 +425,18 @@ class _ReparacionFormScreenState extends ConsumerState<ReparacionFormScreen> {
               const SizedBox(width: 16),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: _guardarReparacion,
+                  onPressed: _guardando ? null : _guardarReparacion,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     backgroundColor: const Color(0xFF2396B9),
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text('Guardar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  child: _guardando
+                      ? const SizedBox(
+                          height: 20, width: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text('Guardar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
@@ -269,27 +446,66 @@ class _ReparacionFormScreenState extends ConsumerState<ReparacionFormScreen> {
     );
   }
 
-  // Widget reutilizable para los botones de evidencia grandes
-  Widget _buildBotonEvidencia(IconData icono, String label) {
-    return InkWell(
-      onTap: () {
-        // Lógica del ImagePicker
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 24),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade400),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Column(
-          children: [
-            Icon(icono, size: 32, color: Colors.grey.shade600),
-            const SizedBox(height: 8),
-            Text(label, style: TextStyle(color: Colors.grey.shade600)),
-          ],
-        ),
+  Widget _label(String texto) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(texto,
+            style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+      );
+
+  // Tarjeta de miniatura para la lista horizontal
+  Widget _buildBotonEvidencia({
+    required File archivo,
+    required VoidCallback onEliminar,
+  }) {
+    final esVideo = _esVideo(archivo);
+
+    return Container(
+      width: 120,
+      height: 140,
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(12),
+        image: !esVideo
+            ? DecorationImage(image: FileImage(archivo), fit: BoxFit.cover)
+            : null,
+        color: Colors.grey.shade900, // Fondo negro para videos
+      ),
+      child: Stack(
+        children: [
+          if (esVideo)
+            Positioned.fill(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.videocam, size: 36, color: Colors.white),
+                  const SizedBox(height: 6),
+                  Text('Video', style: TextStyle(color: Colors.grey.shade100, fontSize: 12)),
+                ],
+              ),
+            ),
+          Positioned(
+            top: -4, 
+            right: -4,
+            child: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: Colors.black54,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.close, size: 16, color: Colors.white),
+              ),
+              onPressed: onEliminar,
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  bool _esVideo(File? archivo) {
+    if (archivo == null) return false;
+    final ext = archivo.path.split('.').last.toLowerCase();
+    return {'mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v'}.contains(ext);
   }
 }
