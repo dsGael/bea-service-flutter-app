@@ -10,14 +10,21 @@ class TicketsCorrectivosListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ticketsAsync = ref.watch(ticketListCorrectivoProvider);
+  final filtro = ticketsFiltroProvider((
+    isMantenimiento: false,
+    isAbierto: true,
+    idtecnico: null,
+    
+  ) as TicketFilterArgs);
+
+    final ticketsAbiertosCorrectivos = ref.watch(filtro);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Correctivos Pendientes')),
       drawer: const AppDrawer(), 
       body: RefreshIndicator(
-        onRefresh: () => ref.refresh(ticketListCorrectivoProvider.future),
-        child: ticketsAsync.when(
+        onRefresh: () => ref.refresh(filtro.future),
+        child: ticketsAbiertosCorrectivos.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, st) => Center(child: Text('Error al cargar: $err')),
           data: (tickets) {

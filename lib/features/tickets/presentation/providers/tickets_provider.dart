@@ -1,7 +1,7 @@
+import 'package:bea_service_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/tickets_repository.dart';
 import '../../data/models/ticket_model.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
 
 // ===========================================================================
 // ── 1. REPOSITORIO CENTRAL ──
@@ -10,83 +10,70 @@ final ticketsRepositoryProvider = Provider((ref) {
   return TicketsRepository(ref.watch(apiClientProvider));
 });
 
-
 // ===========================================================================
-// ── 2. PROVEEDORES DE LECTURA (GET - FutureProviders) ──
+// ── 2. PROVEEDORES DE LECTURA (GET - FutureProviders Optimizados) ──
 // ===========================================================================
 
-final ticketsListAllProvider = FutureProvider.autoDispose<List<TicketModel>>((ref) async {
-  final repository = ref.watch(ticketsRepositoryProvider);
-  return repository.listarTodos();
-});
+/// PROVEEDOR DINÁMICO ÚNICO: Reemplaza a todos los listados anteriores.
+/// Recibe un Map con los filtros que necesites aplicar.
 
-final ticketsListTecnicoProvider = FutureProvider.autoDispose<List<TicketModel>>((ref) async {
-  final usuario = ref.watch(authStateProvider).valueOrNull;
-  if (usuario == null) return [];
-
-  final idUsuarioApp = usuario['idUsuarioApp'] as String;
-  return ref.watch(ticketsRepositoryProvider).listarPorTecnico(idUsuarioApp);
-});
-
-final ticketsListMantenimientoProvider = FutureProvider.autoDispose<List<TicketModel>>((ref) async {
-  return ref.watch(ticketsRepositoryProvider).listarMantenimiento();
-});
-
-final ticketsListMantenimientoTecnicoProvider = FutureProvider.autoDispose<List<TicketModel>>((ref) async {
-  final usuario = ref.watch(authStateProvider).valueOrNull;
-  if (usuario == null) return [];
+typedef TicketFilterArgs = ({bool? isMantenimiento, bool? isAbierto, String? idtecnico});
+// 2. Actualizamos el provider
+final ticketsFiltroProvider = FutureProvider.autoDispose.family<List<TicketModel>, TicketFilterArgs>((ref, args) async {
   
-  return ref.watch(ticketsRepositoryProvider).listarMantenimientoPorTecnico(usuario['idUsuarioApp']);
-});
-
-final ticketsListMantenimientoAbiertosProvider = FutureProvider.autoDispose<List<TicketModel>>((ref) async {
-  return ref.watch(ticketsRepositoryProvider).listarMantenimientoAbiertos();
-});
-
-final ticketsListMantenimientoAbiertosTecnicoProvider = FutureProvider.autoDispose<List<TicketModel>>((ref) async {
-  final usuario = ref.watch(authStateProvider).valueOrNull;
-  if (usuario == null) return [];
+  // Convertimos el Record al mapa que necesita el backend
+  final queryMap = <String, dynamic>{};
   
-  return ref.watch(ticketsRepositoryProvider).listarMantenimientoAbiertosPorTecnico(usuario['idUsuarioApp']);
+  if (args.isMantenimiento != null) queryMap['isMantenimiento'] = args.isMantenimiento;
+  if (args.isAbierto != null) queryMap['isAbierto'] = args.isAbierto;
+  if (args.idtecnico != null) queryMap['idtecnico'] = args.idtecnico;
+
+  return ref.watch(ticketsRepositoryProvider).listarTickets(query: queryMap);
 });
 
+
+ 
 final ticketDetailProvider = FutureProvider.autoDispose.family<TicketModel, String>((ref, idticket) async {
   return ref.watch(ticketsRepositoryProvider).obtenerPorId(idticket);
 });
-
-final ticketListCorrectivoProvider = FutureProvider.autoDispose<List<TicketModel>>((ref) async {
-  return ref.watch(ticketsRepositoryProvider).listarCorrectivosAbiertos();
-});
-
 
 // ===========================================================================
 // ── 3. CONTROLADOR DE ACCIONES (POST, PATCH) ──
 // ===========================================================================
 
-/// Proveedor para acceder al controlador de acciones desde la UI
 final ticketsControllerProvider = Provider.autoDispose((ref) {
   return TicketsController(ref.watch(ticketsRepositoryProvider));
 });
 
-/// Clase para manejar las mutaciones de forma segura sin que Riverpod las dispare al azar
 class TicketsController {
   final TicketsRepository _repository;
   
   TicketsController(this._repository);
 
-  Future<void> crearTicket(Map<String, dynamic> ticketData) => _repository.crearTicket(ticketData);
+  Future<void> crearTicket(Map<String, dynamic> ticketData, {List<String>? evidenciasFalla}) => 
+      _repository.crearTicket(ticketData, evidenciasFalla: evidenciasFalla);
   
-  Future<void> crearMantenimiento(Map<String, dynamic> ticketData) => _repository.crearMantenimiento(ticketData);
+  Future<void> crearMantenimiento(Map<String, dynamic> ticketData, {List<String>? evidenciasFalla}) => 
+      _repository.crearMantenimiento(ticketData, evidenciasFalla: evidenciasFalla);
+      
+  Future<void> editarTicket(String idticket, Map<String, dynamic> ticketData, {List<String>? evidenciasFalla}) => 
+      _repository.editarTicket(idticket, ticketData, evidenciasFalla: evidenciasFalla);
   
-  Future<void> asignarTecnico(String idticket, Map<String, dynamic> data) => _repository.asignarTecnico(idticket, data);
+  Future<void> asignarTecnico(String idticket, Map<String, dynamic> data) => 
+      _repository.asignarTecnico(idticket, data);
   
-  Future<void> registrarReparacion(String idticket, Map<String, dynamic> data) => _repository.registrarReparacion(idticket, data);
+  Future<void> registrarReparacion(String idticket, Map<String, dynamic> data, {List<String>? evidenciasReparacion}) => 
+      _repository.registrarReparacion(idticket, data, evidenciasReparacion: evidenciasReparacion);
   
-  Future<void> validarTicket(String idticket, Map<String, dynamic> data) => _repository.validarTicket(idticket, data);
+  Future<void> validarTicket(String idticket, Map<String, dynamic> data) => 
+      _repository.validarTicket(idticket, data);
   
-  Future<void> marcarPendiente(String idticket) => _repository.marcarPendiente(idticket);
+  Future<void> marcarPendiente(String idticket) => 
+      _repository.marcarPendiente(idticket);
   
-  Future<void> reanudarTicket(String idticket) => _repository.reanudarTicket(idticket);
+  Future<void> reanudarTicket(String idticket) => 
+      _repository.reanudarTicket(idticket);
   
-  Future<void> cancelarTicket(String idticket) => _repository.cancelarTicket(idticket);
+  Future<void> cancelarTicket(String idticket) => 
+      _repository.cancelarTicket(idticket);
 }

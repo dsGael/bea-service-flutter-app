@@ -4,6 +4,7 @@ import 'package:bea_service_app/features/auth/presentation/providers/auth_provid
 import 'package:bea_service_app/features/tickets/data/models/diagnostico_model.dart';
 import 'package:bea_service_app/features/tickets/data/models/ticket_model.dart';
 import 'package:bea_service_app/features/tickets/data/uploads_repository.dart';
+import 'package:bea_service_app/features/tickets/presentation/providers/tickets_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -219,30 +220,37 @@ Future<void> _cargarCatalogos() async {
 
   Future<void> _guardarReparacion() async {
     if (!_formKey.currentState!.validate()) return;
+    
+    // Validar que se haya seleccionado al menos una evidencia si es obligatorio
+    // if (_evidencias.isEmpty) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(content: Text('Por favor adjunta al menos una evidencia')),
+    //   );
+    //   return;
+    // }
+
     setState(() => _guardando = true);
 
     try {
-      final apiClient = ref.read(apiClientProvider);
-      final uploadsRepo = UploadsRepository(apiClient);
+      // 1. Extraemos las rutas locales de todos los archivos (fotos y videos)
+      final rutasArchivos = _evidencias.map((file) => file.path).toList();
 
-      // Subir TODAS las fotos/videos a MinIO y almacenar sus URLs en un arreglo
-      List<String> urlsSubidas = [];
-      for (var archivo in _evidencias) {
-        final url = await uploadsRepo.subirImagen(archivo);
-        if (url != null) {
-          urlsSubidas.add(url);
-        }
-      }
+      // 2. Preparamos los campos de texto
+      // Nota: Como se enviará como FormData, los valores nulos pueden dar problema, 
+      // asegúrate de mandar strings vacíos si no hay valor.
+      final formDataMap = {
+        'diagnostico': _diagnosticoSeleccionado ?? '',
+        'reparacion': _reparacionSeleccionada ?? '',
+        'comentarios': _comentariosController.text.trim(),
+        // 'fechaAtencion': _fechaAtencion.toIso8601String(), // Por si tu backend lo necesita
+      };
 
-      // Llama al endpoint mandando el arreglo completo
-      await apiClient.dio.patch(
-        '/tickets/${widget.ticket.idticket}/reparacion',
-        data: {
-          'diagnostico': _diagnosticoSeleccionado,
-          'reparacion': _reparacionSeleccionada,
-          'comentarios': _comentariosController.text.trim(),
-          'evidencias': urlsSubidas, // <-- Se envía como Array al backend
-        },
+      // 3. Llamamos a nuestro controlador de Riverpod
+      // Este método se encargará de armar el MultipartFile / FormData automáticamente
+      await ref.read(ticketsControllerProvider).registrarReparacion(
+        widget.ticket.idticket,
+        formDataMap,
+        evidenciasReparacion: rutasArchivos, // OJO: Asegúrate de enviar la lista de rutas
       );
 
       if (mounted) {

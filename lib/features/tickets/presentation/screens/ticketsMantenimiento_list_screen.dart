@@ -10,7 +10,12 @@ class TicketsMantenimientoListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ticketsAsync = ref.watch(ticketsListMantenimientoAbiertosProvider);
+   final filtro = ticketsFiltroProvider((
+      isMantenimiento: true,
+      isAbierto: true,
+      idtecnico: null,
+      ) );
+    final ticketsAbiertosMantenimiento = ref.watch(filtro);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Mantenimientos Pendientes')),
@@ -35,8 +40,8 @@ class TicketsMantenimientoListScreen extends ConsumerWidget {
       // ),
       
       body: RefreshIndicator(
-        onRefresh: () => ref.refresh(ticketsListMantenimientoAbiertosProvider.future),
-        child: ticketsAsync.when(
+        onRefresh: () => ref.refresh(filtro.future),
+        child: ticketsAbiertosMantenimiento.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, st) => Center(child: Text('Error al cargar: $err')),
           data: (tickets) {

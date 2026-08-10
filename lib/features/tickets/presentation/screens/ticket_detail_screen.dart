@@ -1,5 +1,5 @@
 import 'package:bea_service_app/features/tickets/data/models/ticket_model.dart';
-import 'package:bea_service_app/features/tickets/presentation/screens/crear_reparacion_form_screen.dart';
+import 'package:bea_service_app/features/tickets/presentation/screens/form_crear_reparacion_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; 
 
