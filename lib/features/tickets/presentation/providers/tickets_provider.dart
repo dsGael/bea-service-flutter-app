@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:bea_service_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import '../../data/tickets_repository.dart';
 import '../../data/models/ticket_model.dart';
 
@@ -62,9 +65,31 @@ class TicketsController {
   Future<void> asignarTecnico(String idticket, Map<String, dynamic> data) => 
       _repository.asignarTecnico(idticket, data);
   
-  Future<void> registrarReparacion(String idticket, Map<String, dynamic> data, {List<String>? evidenciasReparacion}) => 
-      _repository.registrarReparacion(idticket, data, evidenciasReparacion: evidenciasReparacion);
-  
+Future<void> registrarReparacion({
+    required String idTicket,
+    required String diagnostico,
+    required String reparacion,
+    required String fechaHora,
+    String? comentarios,
+    List<File>? evidencias,
+  }) async {
+    
+    // 1. Genera la lógica de negocio (el ID único)
+    final String idDetalleGenerado = const Uuid().v4();
+
+    // 2. Le manda los datos crudos al repositorio
+    await _repository.registrarReparacion(
+      idTicket: idTicket,
+      idDetalle: idDetalleGenerado,
+      diagnostico: diagnostico,
+      reparacion: reparacion,
+      comentarios: comentarios ?? '', 
+      fechaHora: fechaHora,
+      evidencias: evidencias,
+    );
+  }
+
+
   Future<void> validarTicket(String idticket, Map<String, dynamic> data) => 
       _repository.validarTicket(idticket, data);
   

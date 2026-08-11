@@ -5,6 +5,7 @@ import 'package:bea_service_app/features/tickets/data/models/diagnostico_model.d
 import 'package:bea_service_app/features/tickets/data/models/ticket_model.dart';
 import 'package:bea_service_app/features/tickets/data/uploads_repository.dart';
 import 'package:bea_service_app/features/tickets/presentation/providers/tickets_provider.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -232,25 +233,15 @@ Future<void> _cargarCatalogos() async {
     setState(() => _guardando = true);
 
     try {
-      // 1. Extraemos las rutas locales de todos los archivos (fotos y videos)
-      final rutasArchivos = _evidencias.map((file) => file.path).toList();
+      final String fechaOffline = DateTime.now().toUtc().toIso8601String();
 
-      // 2. Preparamos los campos de texto
-      // Nota: Como se enviará como FormData, los valores nulos pueden dar problema, 
-      // asegúrate de mandar strings vacíos si no hay valor.
-      final formDataMap = {
-        'diagnostico': _diagnosticoSeleccionado ?? '',
-        'reparacion': _reparacionSeleccionada ?? '',
-        'comentarios': _comentariosController.text.trim(),
-        // 'fechaAtencion': _fechaAtencion.toIso8601String(), // Por si tu backend lo necesita
-      };
-
-      // 3. Llamamos a nuestro controlador de Riverpod
-      // Este método se encargará de armar el MultipartFile / FormData automáticamente
       await ref.read(ticketsControllerProvider).registrarReparacion(
-        widget.ticket.idticket,
-        formDataMap,
-        evidenciasReparacion: rutasArchivos, // OJO: Asegúrate de enviar la lista de rutas
+        idTicket: widget.ticket.idticket,
+        diagnostico: _diagnosticoSeleccionado ?? '',
+        reparacion: _reparacionSeleccionada ?? '',
+        comentarios: _comentariosController.text.trim(),
+        fechaHora: fechaOffline, 
+        evidencias: _evidencias.isNotEmpty ? _evidencias : null, // Pasamos la lista de Files directo
       );
 
       if (mounted) {
@@ -264,12 +255,32 @@ Future<void> _cargarCatalogos() async {
       }
     } catch (e) {
       if (mounted) {
+        String mensajeError = 'Error al guardar';
+        
+        // Si el error viene de Dio, extraemos la respuesta del backend
+        if (e is DioException && e.response != null) {
+          final data = e.response!.data;
+          print('🚨 RECHAZO DEL BACKEND: $data'); // Se verá en tu consola de Flutter
+          
+          // NestJS suele mandar los errores de validación en un arreglo llamado 'message'
+          if (data is Map && data.containsKey('message')) {
+            final msj = data['message'];
+            mensajeError = msj is List ? msj.join(', ') : msj.toString();
+          } else {
+            mensajeError = 'Error 400: Datos inválidos enviados al servidor';
+          }
+        } else {
+          mensajeError = e.toString();
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al guardar: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(mensajeError), 
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5), // Un poco más de tiempo para leer
+          ),
         );
       }
-    } finally {
-      if (mounted) setState(() => _guardando = false);
     }
   }
 

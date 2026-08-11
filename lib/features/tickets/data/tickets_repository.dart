@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import '../../../core/api/api_client.dart';
 import 'models/ticket_model.dart';
@@ -77,18 +79,42 @@ class TicketsRepository {
     await _apiClient.dio.patch('/tickets/$idticket/asignar', data: data);
   }
 
-  Future<void> registrarReparacion(String idticket, Map<String, dynamic> data, {List<String>? evidenciasReparacion}) async {
-    final formData = FormData.fromMap(data);
+
+  Future<void> registrarReparacion({
+    required String idTicket,
+    required String idDetalle, 
+    required String diagnostico,
+    required String reparacion,
+    required String comentarios,
+    required String fechaHora,
+    List<File>? evidencias,
+  }) async {
     
-    if (evidenciasReparacion != null) {
-      for (String ruta in evidenciasReparacion) {
+    // 1. Arma el formulario web
+    final formData = FormData.fromMap({
+      'idTicket': idTicket,   
+      'idDetalle': idDetalle, 
+      'diagnostico': diagnostico,
+      'reparacion': reparacion,
+      'comentarios': comentarios,
+      'fechaHora': fechaHora,
+    });
+
+    // 2. Agrega los archivos físicos usando Dio
+    if (evidencias != null) {
+      for (var file in evidencias) {
         formData.files.add(MapEntry(
-          'evidenciasReparacion', // Ojo: Este endpoint en NestJS se llama distinto
-          await MultipartFile.fromFile(ruta)
+          'evidenciasReparacion', 
+          await MultipartFile.fromFile(
+            file.path,
+            filename: file.path.split('/').last,
+          )
         ));
       }
     }
-    await _apiClient.dio.patch('/tickets/$idticket/reparacion', data: formData);
+
+    // 3. Lo envía al backend
+    await _apiClient.dio.patch('/tickets/$idTicket/reparacion', data: formData);
   }
 
   Future<void> validarTicket(String idticket, Map<String, dynamic> data) async {
