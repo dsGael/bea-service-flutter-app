@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:bea_service_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:bea_service_app/features/tickets/data/models/diagnostico_model.dart';
 import 'package:bea_service_app/features/tickets/data/models/ticket_model.dart';
-import 'package:bea_service_app/features/tickets/data/uploads_repository.dart';
 import 'package:bea_service_app/features/tickets/presentation/providers/tickets_provider.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';

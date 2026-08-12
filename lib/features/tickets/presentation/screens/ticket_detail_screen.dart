@@ -1,3 +1,4 @@
+import 'package:bea_service_app/features/refacciones/presentation/form_solicitud_refaccion.dart';
 import 'package:bea_service_app/features/tickets/data/models/ticket_model.dart';
 import 'package:bea_service_app/features/tickets/presentation/screens/form_crear_reparacion_screen.dart';
 import 'package:flutter/material.dart';
@@ -346,6 +347,12 @@ class TicketDetalleScreen extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: () {
                   // Navegar a pantalla de solicitar refacción
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SolicitarRefaccionScreen(ticket: ticket),
+                    ),
+                  );
                 },
                 icon: const Icon(Icons.add_shopping_cart),
                 label: const Text('Solicitar Refacción'),
