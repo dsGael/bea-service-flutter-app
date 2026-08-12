@@ -1,5 +1,6 @@
 import 'package:bea_service_app/features/tickets/data/models/ticket_model.dart';
 import 'package:bea_service_app/features/tickets/presentation/screens/historial_mantenimientos_screen.dart';
+import 'package:bea_service_app/features/tickets/presentation/screens/historial_tickets_screen.dart';
 import 'package:bea_service_app/features/tickets/presentation/screens/ticket_detail_screen.dart';
 import 'package:bea_service_app/features/tickets/presentation/screens/ticketsCorrectivos_list_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,9 +33,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: '/tickets/historial', 
+        builder: (context, state) => const HistorialTicketsScreen(),
+      ),
+      GoRoute(
       path: '/tickets/historial/mantenimientos',
       builder: (context, state) => const HistorialMantenimientosScreen(),
       ),
+
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return MainShell(navigationShell: navigationShell);

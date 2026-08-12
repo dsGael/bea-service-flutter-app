@@ -3,7 +3,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bea_service_app/features/tickets/data/models/ticket_model.dart';
-import 'package:bea_service_app/features/tickets/presentation/providers/tickets_provider.dart';
 
 class SolicitarRefaccionScreen extends ConsumerStatefulWidget {
   final TicketModel ticket;
@@ -43,7 +42,7 @@ class _SolicitarRefaccionScreenState extends ConsumerState<SolicitarRefaccionScr
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Refacción solicitada. Folio en pausa.'),
+            content: Text('✅ Refacción solicitada.'),
             backgroundColor: Color.fromARGB(255, 66, 151, 69),
           ),
         );

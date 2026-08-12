@@ -2,6 +2,8 @@
 // import 'ticket_model.dart'; 
 // import 'tecnico_model.dart';
 
+import 'package:bea_service_app/features/tickets/data/models/catalogos_models.dart';
+
 class SolicitudRefaccionModel {
   final String idSolicitud;
   final String? idticket;
@@ -14,7 +16,7 @@ class SolicitudRefaccionModel {
 
   // ── Relaciones (Incluidas por Prisma) ──
   // Nota: Usa 'dynamic' o el tipo de tu modelo real si ya lo tienes creado
-  final dynamic dispositivoT; 
+  final DispositivoModel? dispositivoT; 
   final dynamic ticket;
   final dynamic tecnico;
 
@@ -57,7 +59,9 @@ class SolicitudRefaccionModel {
           : [],
 
       // Mapeo de relaciones (si vienen en el JSON gracias al 'include' de Prisma)
-      dispositivoT: json['cat_dispositivo_t'],
+    dispositivoT: json['cat_dispositivo_t'] != null 
+        ? DispositivoModel.fromJson(json['cat_dispositivo_t']) 
+        : null,   
       ticket: json['bin_ticket'], // Si tienes el modelo: json['bin_ticket'] != null ? TicketModel.fromJson(json['bin_ticket']) : null
       tecnico: json['cat_tecnicos'], 
     );

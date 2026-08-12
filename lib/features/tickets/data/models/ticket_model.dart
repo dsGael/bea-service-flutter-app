@@ -1,4 +1,6 @@
+import 'package:bea_service_app/features/refacciones/data/models/refaccion_model.dart';
 import 'package:bea_service_app/features/tickets/data/models/catalogos_models.dart';
+import 'package:bea_service_app/features/tickets/data/models/reparacion_model.dart';
 
 class TicketModel {
   final String idticket;
@@ -19,6 +21,8 @@ class TicketModel {
   final EstadoModel? estado;
   final TecnicoModel? tecnico;
   final DispositivoModel? dispositivo;
+  final List<SolicitudRefaccionModel> refacciones;
+  final List<ReparacionModel> reparaciones;
 
   TicketModel({
     required this.idticket,
@@ -37,6 +41,8 @@ class TicketModel {
     this.estado,
     this.tecnico,
     this.dispositivo,
+    this.refacciones = const [],
+    this.reparaciones = const [],
   });
 
   factory TicketModel.fromJson(Map<String, dynamic> json) {
@@ -68,6 +74,16 @@ class TicketModel {
       estado: json['estado'] != null ? EstadoModel.fromJson(json['estado']) : null,
       tecnico: json['cat_tecnicos'] != null ? TecnicoModel.fromJson(json['cat_tecnicos']) : null,
       dispositivo: json['cat_dispositivo_t'] != null ? DispositivoModel.fromJson(json['cat_dispositivo_t']) : null,
+      refacciones: json['solicitud_refaccion'] != null 
+          ? List<SolicitudRefaccionModel>.from(
+              (json['solicitud_refaccion'] as List).map((x) => SolicitudRefaccionModel.fromJson(x))
+            ) 
+          : [],
+      reparaciones: json['bin_ticket_detail'] != null 
+          ? List<ReparacionModel>.from(
+              (json['bin_ticket_detail'] as List).map((x) => ReparacionModel.fromJson(x))
+            ) 
+          : [],
     );
   }
 }

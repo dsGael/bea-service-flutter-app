@@ -28,10 +28,10 @@ class AppDrawer extends ConsumerWidget {
             // Secundarios — poca frecuencia de uso
             ListTile(
               leading: const Icon(Icons.build_circle_outlined),
-              title: const Text('Crear mantenimiento'),
+              title: const Text('Historial de tickets'),
               onTap: () {
                 Navigator.pop(context); // cierra el drawer primero
-                context.push('/mantenimiento/nuevo');
+                context.push('/tickets/historial');
               },
             ),
             ListTile(

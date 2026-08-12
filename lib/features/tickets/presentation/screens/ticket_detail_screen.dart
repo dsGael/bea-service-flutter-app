@@ -1,6 +1,8 @@
 import 'package:bea_service_app/features/refacciones/presentation/form_solicitud_refaccion.dart';
+import 'package:bea_service_app/features/tickets/data/models/reparacion_model.dart';
 import 'package:bea_service_app/features/tickets/data/models/ticket_model.dart';
 import 'package:bea_service_app/features/tickets/presentation/screens/form_crear_reparacion_screen.dart';
+import 'package:bea_service_app/features/tickets/presentation/screens/reparacion_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; 
 
@@ -12,16 +14,26 @@ class TicketDetalleScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final folioMostrar = ticket.folio ?? ticket.idticket.substring(0, 6).toUpperCase();
-    final listaReparaciones = [
-      {"folio": "RPT5951-b", "fecha": "14/07/2026 05:04 AM"},
-      {"folio": "RPT5951", "fecha": "16/07/2026 01:03 AM"},
-      {"folio": "RPT5951", "fecha": "25/07/2026 02:03 PM"},
-      ];
+    final listaReparaciones = (ticket.reparaciones ).map((reparacion) {
+    return {
+      "titulo": reparacion.diagnostico ?? 'Sin diagnóstico', 
+      "reparacion": reparacion.reparacion ?? 'Sin reparación descrita',
+      "fecha": reparacion.fechaResolucion != null 
+          // ¡Usamos toLocal() para que el técnico vea la hora correcta de Sonora!
+          ? DateFormat('dd/MM/yyyy hh:mm a').format(reparacion.fechaResolucion!.toLocal())
+          : 'Fecha desconocida',
+    };
+  }).toList();
 
-    final listaRefacciones = [
-      {"estado": "Entregado", "refaccion": "ANTENA GPS", "cantidad": 1},
-      {"estado": "Pendiente", "refaccion": "ENTRADA DE ENERGIA", "cantidad": 1},
-      ];
+  // // 2. Mapear las Refacciones reales (si también las tienes en el include de Prisma)
+  // final listaRefacciones = (ticket.refacciones).map((refaccion) {
+  //   return {
+  //     "estado": refaccion.estado ?? 'Desconocido',
+  //     // Si el dispositivo viene anidado, lo lees. Si no, pones el ID.
+  //     "refaccion": refaccion.dispositivoT?.nombre ?? refaccion.idDispositivo ?? 'Pieza', 
+  //     "cantidad": refaccion.cantidad ?? 1,
+  //   };
+  // }).toList();
     return Scaffold(
       appBar: AppBar(
         title: Text('Folio: $folioMostrar'),
@@ -44,10 +56,10 @@ class TicketDetalleScreen extends StatelessWidget {
             _buildEvidenciaFotografica(),
             const SizedBox(height: 16),
 
-            _buildAcordeonReparaciones(listaReparaciones),
+            _buildAcordeonReparaciones(context, ticket.reparaciones),
             const SizedBox(height: 12),
 
-            _buildAcordeonRefacciones(listaRefacciones),
+            //_buildAcordeonRefacciones(listaRefacciones),
             const SizedBox(height: 24), 
           ],
         ),
@@ -205,7 +217,7 @@ class TicketDetalleScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAcordeonReparaciones(List<Map<String, dynamic>> reparaciones) {
+  Widget _buildAcordeonReparaciones(context ,List<ReparacionModel> reparaciones) {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -227,85 +239,103 @@ class TicketDetalleScreen extends StatelessWidget {
             )
           ],
         ),
-        children: reparaciones.map((rep) {
-          return Column(
+       children: reparaciones.map((rep) {
+  // Sacamos el nombre igual que lo hicimos en el mapeo anterior
+  final nombreAparato = rep.dispositivo?.nombre ?? rep.dispositivo?.descripcion ?? 'Aparato';
+  final titulo = "$nombreAparato - ${rep.diagnostico ?? 'Revisión'}";
+  
+  final fecha = rep.fechaResolucion != null
+      ? DateFormat('dd/MM/yyyy hh:mm a').format(rep.fechaResolucion!.toLocal())
+      : 'Fecha desconocida';
+
+  return Column(
+    children: [
+      const Divider(height: 1),
+      ListTile(
+        title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Divider(height: 1),
-              ListTile(
-                title: Text(rep['folio'], style: const TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    'Fecha de reparación: ${rep['fecha']}',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                  ),
-                ),
-                trailing: const Icon(Icons.chevron_right, size: 24, color: Color.fromARGB(255, 133, 132, 132)),
-                onTap: () {
-                  // Opcional: Navegar al detalle de esa reparación específica
-                },
-              ),
+              Text('Acción: ${rep.reparacion ?? "Sin registro"}', style: TextStyle(color: Colors.grey.shade800)),
+              const SizedBox(height: 4),
+              Text(fecha, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
             ],
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-
-  Widget _buildAcordeonRefacciones(List<Map<String, dynamic>> refacciones) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade300),
-      ),
-      child: ExpansionTile(
-        shape: const Border(),
-        leading: const Icon(Icons.memory, color: Colors.teal),
-        title: Row(
-          children: [
-            const Text('Refacciones Solicitadas', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(12)),
-              child: Text('${refacciones.length}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-            )
-          ],
+          ),
         ),
-        children: refacciones.map((ref) {
-          final isEntregado = ref['estado'].toString().toLowerCase() == 'entregado';
-          
-          return Column(
-            children: [
-              const Divider(height: 1),
-              ListTile(
-                title: Text(ref['refaccion'], style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                subtitle: Text('Cantidad: ${ref['cantidad']}'),
-                trailing: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isEntregado ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: isEntregado ? Colors.green : Colors.orange),
-                  ),
-                  child: Text(
-                    ref['estado'],
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: isEntregado ? Colors.green.shade700 : Colors.orange.shade700,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+        trailing: const Icon(Icons.chevron_right, size: 24, color: Colors.grey),
+        onTap: () {
+          // 👇 AQUÍ CONECTAMOS LA NUEVA PANTALLA 👇
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ReparacionDetalleScreen(reparacion: rep),
+            ),
           );
-        }).toList(),
+        },
+      ),
+    ],
+  );
+}).toList(),
       ),
     );
   }
+
+
+  // Widget _buildAcordeonRefacciones(List<Map<String, dynamic>> refacciones) {
+  //   return Card(
+  //     elevation: 0,
+  //     shape: RoundedRectangleBorder(
+  //       borderRadius: BorderRadius.circular(12),
+  //       side: BorderSide(color: Colors.grey.shade300),
+  //     ),
+  //     child: ExpansionTile(
+  //       shape: const Border(),
+  //       leading: const Icon(Icons.memory, color: Colors.teal),
+  //       title: Row(
+  //         children: [
+  //           const Text('Refacciones Solicitadas', style: TextStyle(fontWeight: FontWeight.bold)),
+  //           const SizedBox(width: 8),
+  //           Container(
+  //             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+  //             decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(12)),
+  //             child: Text('${refacciones.length}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+  //           )
+  //         ],
+  //       ),
+  //       children: refacciones.map((ref) {
+  //         final isEntregado = ref['estado'].toString().toLowerCase() == 'entregado';
+          
+  //         return Column(
+  //           children: [
+  //             const Divider(height: 1),
+  //             ListTile(
+  //               title: Text(ref['refaccion'], style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+  //               subtitle: Text('Cantidad: ${ref['cantidad']}'),
+  //               trailing: Container(
+  //                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+  //                 decoration: BoxDecoration(
+  //                   color: isEntregado ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+  //                   borderRadius: BorderRadius.circular(8),
+  //                   border: Border.all(color: isEntregado ? Colors.green : Colors.orange),
+  //                 ),
+  //                 child: Text(
+  //                   ref['estado'],
+  //                   style: TextStyle(
+  //                     fontSize: 10,
+  //                     fontWeight: FontWeight.bold,
+  //                     color: isEntregado ? Colors.green.shade700 : Colors.orange.shade700,
+  //                   ),
+  //                 ),
+  //               ),
+  //             ),
+  //           ],
+  //         );
+  //       }).toList(),
+  //     ),
+  //   );
+  // }
 
 
   Widget _buildBarraDeAcciones(BuildContext context) {
