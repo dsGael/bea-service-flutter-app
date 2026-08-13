@@ -1,3 +1,4 @@
+import 'package:bea_service_app/core/widgets/fila_dato_text.dart';
 import 'package:bea_service_app/features/refacciones/presentation/form_solicitud_refaccion.dart';
 import 'package:bea_service_app/features/tickets/data/models/reparacion_model.dart';
 import 'package:bea_service_app/features/tickets/data/models/ticket_model.dart';
@@ -161,11 +162,11 @@ class TicketDetalleScreen extends StatelessWidget {
             const Divider(),
             const SizedBox(height: 8),
             
-            _FilaDato(etiqueta: 'Prioridad:', valor: prioridad),
+            FilaDato(etiqueta: 'Prioridad:', valor: prioridad),
             const SizedBox(height: 8),
-              _FilaDato(etiqueta: 'Dispositivo:', valor: dispositivo),
+            FilaDato(etiqueta: 'Dispositivo:', valor: dispositivo),
             const SizedBox(height: 8),
-            _FilaDato(etiqueta: 'Falla:', valor: fallaCompleta),
+            FilaDato(etiqueta: 'Falla:', valor: fallaCompleta),
             const SizedBox(height: 12),
           
             
@@ -342,7 +343,6 @@ class TicketDetalleScreen extends StatelessWidget {
     return SafeArea(
       child: Container(
         padding: const EdgeInsets.all(16.0),
-        // Usamos una columna en modo "min" para que solo ocupe el espacio necesario
         child: Column(
           mainAxisSize: MainAxisSize.min, 
           children: [
@@ -369,31 +369,8 @@ class TicketDetalleScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 12), // Espaciador entre botones
+           // const SizedBox(height: 12), // Espaciador entre botones
             
-            // Botón 2: Solicitar Refacción (Outlined, Acción secundaria)
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  // Navegar a pantalla de solicitar refacción
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SolicitarRefaccionScreen(ticket: ticket),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.add_shopping_cart),
-                label: const Text('Solicitar Refacción'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  foregroundColor: const Color(0xFF2396B9),
-                  side: const BorderSide(color: Color(0xFF2396B9), width: 1.5), // Borde azul
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ),
           ],
         ),
       ),
@@ -411,24 +388,3 @@ class TicketDetalleScreen extends StatelessWidget {
   }
 }
 
-class _FilaDato extends StatelessWidget {
-  final String etiqueta;
-  final String valor;
-  
-  const _FilaDato({required this.etiqueta, required this.valor});
-  
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(etiqueta, style: const TextStyle(color: Color.fromARGB(255, 37, 37, 37), fontWeight: FontWeight.w500, fontSize: 18, ),),
-          const SizedBox(width: 8),
-          Expanded(child: Text(valor, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 18),)),
-        ],
-      ),
-    );
-  }
-}

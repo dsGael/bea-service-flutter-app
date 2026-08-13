@@ -1,3 +1,4 @@
+import 'package:bea_service_app/core/router/main_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,6 +27,17 @@ class AppDrawer extends ConsumerWidget {
             ),
 
             // Secundarios — poca frecuencia de uso
+            ListTile(
+            leading: const Icon(Icons.home, color: Color(0xFF2396B9)),
+            title: const Text('Inicio', style: TextStyle(fontSize: 16)),
+            onTap: () {
+              Navigator.pop(context); 
+
+              context.go('/ticketsMantenimiento'); // Navega a la ruta de inicio de tu app
+              
+             
+            },
+          ),
             ListTile(
               leading: const Icon(Icons.build_circle_outlined),
               title: const Text('Historial de tickets'),
